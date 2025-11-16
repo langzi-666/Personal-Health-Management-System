@@ -136,13 +136,13 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useStore } from 'pinia'
+import { useAuthStore } from '../store/auth.js'
 import * as healthApi from '../api/health'
 
-const store = useStore()
-const currentUser = computed(() => store.auth.user)
+const authStore = useAuthStore()
+const currentUser = computed(() => authStore.getCurrentUser())
 
 const pageNum = ref(1)
 const pageSize = ref(10)
@@ -235,10 +235,19 @@ const deleteRecord = (id) => {
 }
 
 watch([pageNum, pageSize], () => {
-  loadRecords()
+  if (currentUser.value?.id) {
+    loadRecords()
+  }
 })
 
-loadRecords()
+// 确保用户信息加载后再加载数据
+onMounted(() => {
+  if (currentUser.value?.id) {
+    loadRecords()
+  } else {
+    ElMessage.warning('请先登录')
+  }
+})
 </script>
 
 <style scoped>

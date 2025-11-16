@@ -225,7 +225,18 @@ const goToDashboard = () => {
 
 const loadUserInfo = async () => {
   try {
-    const userId = route.params.id
+    // 优先从路由参数获取ID，如果没有则从authStore获取当前用户ID
+    let userId = route.params.id
+    if (!userId) {
+      const currentUser = authStore.getCurrentUser()
+      if (currentUser && currentUser.id) {
+        userId = currentUser.id
+      } else {
+        ElMessage.error('无法获取用户信息，请先登录')
+        router.push('/login')
+        return
+      }
+    }
     const response = await getUserInfo(userId)
     if (response.code === 200) {
       userData.value = response.data
