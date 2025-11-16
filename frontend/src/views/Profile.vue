@@ -13,6 +13,29 @@
         </div>
       </template>
 
+      <!-- 头像显示和上传 -->
+      <div class="avatar-section">
+        <el-avatar 
+          :size="100" 
+          :src="avatarUrl"
+          class="avatar"
+        >
+          <span>{{ userData.realName ? userData.realName.charAt(0) : userData.username.charAt(0) }}</span>
+        </el-avatar>
+        <el-upload
+          class="avatar-uploader"
+          :action="`http://localhost:8080/api/users/${userData.id}/avatar`"
+          :headers="uploadHeaders"
+          :show-file-list="false"
+          :on-success="handleAvatarSuccess"
+          :on-error="handleAvatarError"
+          :before-upload="beforeAvatarUpload"
+          accept="image/jpeg,image/jpg,image/png,image/gif"
+        >
+          <el-button type="primary" size="small">上传头像</el-button>
+        </el-upload>
+      </div>
+
       <el-form 
         v-if="!editMode" 
         label-width="100px"
@@ -121,11 +144,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '../store/auth.js'
-import { getUserInfo, updateUserInfo, changePassword as changePasswordAPI } from '../api/auth.js'
+import { getUserInfo, updateUserInfo, changePassword as changePasswordAPI, uploadAvatar } from '../api/auth.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -152,7 +175,24 @@ const userData = ref({
   height: null,
   weightGoal: null,
   bio: '',
+  avatarUrl: '',
   createTime: null
+})
+
+// 头像URL计算属性
+const avatarUrl = computed(() => {
+  if (userData.value.avatarUrl) {
+    return `http://localhost:8080${userData.value.avatarUrl}`
+  }
+  return ''
+})
+
+// 上传请求头
+const uploadHeaders = computed(() => {
+  const token = localStorage.getItem('token')
+  return {
+    Authorization: `Bearer ${token}`
+  }
 })
 
 const passwordForm = ref({
@@ -252,6 +292,38 @@ const changePassword = async () => {
   }
 }
 
+// 头像上传前验证
+const beforeAvatarUpload = (file) => {
+  const isImage = file.type.startsWith('image/')
+  const isLt5M = file.size / 1024 / 1024 < 5
+
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件!')
+    return false
+  }
+  if (!isLt5M) {
+    ElMessage.error('图片大小不能超过 5MB!')
+    return false
+  }
+  return true
+}
+
+// 头像上传成功
+const handleAvatarSuccess = async (response) => {
+  if (response.code === 200) {
+    ElMessage.success('头像上传成功')
+    // 更新头像URL
+    userData.value.avatarUrl = response.data
+  } else {
+    ElMessage.error(response.message || '头像上传失败')
+  }
+}
+
+// 头像上传失败
+const handleAvatarError = (error) => {
+  ElMessage.error('头像上传失败: ' + (error.message || '未知错误'))
+}
+
 onMounted(() => {
   loadUserInfo()
 })
@@ -279,5 +351,23 @@ h3 {
   margin-top: 20px;
   margin-bottom: 15px;
   color: #333;
+}
+
+.avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.avatar {
+  margin-bottom: 15px;
+  border: 2px solid #dcdfe6;
+}
+
+.avatar-uploader {
+  margin-top: 10px;
 }
 </style>

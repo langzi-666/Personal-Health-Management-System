@@ -36,6 +36,8 @@ public class SecurityConfig {
                 // 公开接口（不需要认证）
                 .antMatchers("/api/auth/login", "/api/auth/register", "/api/auth/reset-password").permitAll()
                 .antMatchers("/doc.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
+                // 静态资源（上传的文件）
+                .antMatchers("/uploads/**").permitAll()
                 // 其他请求需要认证
                 .anyRequest().authenticated();
         

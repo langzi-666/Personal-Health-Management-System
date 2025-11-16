@@ -62,3 +62,16 @@ export const changePassword = (userId, oldPassword, newPassword) => {
     }
   })
 }
+
+/**
+ * 上传头像
+ */
+export const uploadAvatar = (userId, file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post(`/users/${userId}/avatar`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}

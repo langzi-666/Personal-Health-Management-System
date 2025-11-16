@@ -3,14 +3,17 @@ package com.health.controller;
 import com.health.dto.ResponseDTO;
 import com.health.entity.User;
 import com.health.service.UserService;
+import com.health.utils.FileUtil;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.constraints.NotBlank;
+import java.io.IOException;
 
 /**
  * 用户管理控制器
@@ -71,6 +74,38 @@ public class UserController {
         try {
             userService.changePassword(id, oldPassword, newPassword);
             return ResponseDTO.success("密码修改成功");
+        } catch (RuntimeException e) {
+            return ResponseDTO.failure(400, e.getMessage());
+        }
+    }
+
+    /**
+     * 上传头像
+     */
+    @PostMapping("/{id}/avatar")
+    @ApiOperation(value = "上传头像", notes = "用户上传头像图片")
+    public ResponseDTO<String> uploadAvatar(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            // 上传文件
+            String avatarUrl = FileUtil.uploadAvatar(file, id);
+            
+            // 更新用户头像URL
+            User user = userService.getUserInfo(id);
+            String oldAvatarUrl = user.getAvatarUrl();
+            user.setAvatarUrl(avatarUrl);
+            userService.updateUserInfo(id, user);
+            
+            // 删除旧头像
+            if (oldAvatarUrl != null && !oldAvatarUrl.isEmpty()) {
+                FileUtil.deleteFile(oldAvatarUrl);
+            }
+            
+            return ResponseDTO.success("头像上传成功", avatarUrl);
+        } catch (IOException e) {
+            log.error("头像上传失败: userId={}", id, e);
+            return ResponseDTO.failure(500, "头像上传失败: " + e.getMessage());
         } catch (RuntimeException e) {
             return ResponseDTO.failure(400, e.getMessage());
         }
